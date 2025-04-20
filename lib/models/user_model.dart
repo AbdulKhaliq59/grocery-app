@@ -4,6 +4,7 @@ class User {
   final String password;
   final String? name;
   final String? profileImage;
+  final String role; // Added role field
 
   User({
     this.id,
@@ -11,6 +12,7 @@ class User {
     required this.password,
     this.name,
     this.profileImage,
+    this.role = 'user', // Default role is 'user'
   });
 
   factory User.fromMap(Map<String, dynamic> map) {
@@ -20,6 +22,7 @@ class User {
       password: map['password'],
       name: map['name'],
       profileImage: map['profile_image'],
+      role: map['role'] ?? 'user',
     );
   }
 
@@ -30,6 +33,7 @@ class User {
       'password': password,
       'name': name,
       'profile_image': profileImage,
+      'role': role,
     };
   }
 
@@ -39,6 +43,7 @@ class User {
     String? password,
     String? name,
     String? profileImage,
+    String? role,
   }) {
     return User(
       id: id ?? this.id,
@@ -46,6 +51,9 @@ class User {
       password: password ?? this.password,
       name: name ?? this.name,
       profileImage: profileImage ?? this.profileImage,
+      role: role ?? this.role,
     );
   }
+
+  bool get isAdmin => role == 'admin';
 }

@@ -24,7 +24,7 @@ class AuthProvider extends ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     final isLoggedIn = prefs.getBool(AppConstants.isLoggedInKey) ?? false;
-    
+
     if (isLoggedIn) {
       final userId = prefs.getInt(AppConstants.userIdKey);
       if (userId != null) {
@@ -42,14 +42,10 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final user = User(
-        email: email,
-        password: password,
-        name: name,
-      );
+      final user = User(email: email, password: password, name: name);
 
       final userId = await _dbHelper.insertUser(user);
-      
+
       if (userId > 0) {
         _currentUser = user.copyWith(id: userId);
         await _saveUserSession(userId, email);
@@ -58,7 +54,7 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return true;
       }
-      
+
       _isLoading = false;
       notifyListeners();
       return false;
@@ -75,7 +71,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final user = await _dbHelper.getUser(email, password);
-      
+
       if (user != null) {
         _currentUser = user;
         await _saveUserSession(user.id!, email);
@@ -84,7 +80,7 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return true;
       }
-      
+
       _isLoading = false;
       notifyListeners();
       return false;
@@ -101,10 +97,10 @@ class AuthProvider extends ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    
+
     _currentUser = null;
     _isLoggedIn = false;
-    
+
     _isLoading = false;
     notifyListeners();
   }
@@ -114,5 +110,75 @@ class AuthProvider extends ChangeNotifier {
     await prefs.setInt(AppConstants.userIdKey, userId);
     await prefs.setString(AppConstants.userEmailKey, email);
     await prefs.setBool(AppConstants.isLoggedInKey, true);
+  }
+
+  Future<bool> updateProfile(String name, String? profileImage) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      if (_currentUser != null) {
+        final updatedUser = _currentUser!.copyWith(
+          name: name,
+          profileImage: profileImage,
+        );
+
+        final result = await _dbHelper.updateUserProfile(updatedUser);
+
+        if (result > 0) {
+          _currentUser = updatedUser;
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        }
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      if (_currentUser != null) {
+        // Verify current password
+        final user = await _dbHelper.getUser(
+          _currentUser!.email,
+          currentPassword,
+        );
+
+        if (user != null) {
+          final result = await _dbHelper.updateUserPassword(
+            _currentUser!.id!,
+            newPassword,
+          );
+
+          if (result > 0) {
+            _isLoading = false;
+            notifyListeners();
+            return true;
+          }
+        }
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 }

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:grocery_app/providers/auth_provider.dart';
+import 'package:grocery_app/screens/admin/admin_dashboard_screen.dart';
 import 'package:grocery_app/screens/auth/login_screen.dart';
+import 'package:grocery_app/screens/profile/edit_profile_screen.dart';
+import 'package:grocery_app/screens/profile/settings_screen.dart';
 import 'package:grocery_app/utils/app_theme.dart';
 import 'package:grocery_app/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -27,13 +31,25 @@ class ProfileScreen extends StatelessWidget {
               CircleAvatar(
                 radius: 60,
                 backgroundColor: AppTheme.primaryColor.withOpacity(0.2),
-                child: Text(
-                  authProvider.currentUser!.name?.substring(0, 1).toUpperCase() ?? 
-                  authProvider.currentUser!.email.substring(0, 1).toUpperCase(),
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
+                backgroundImage:
+                    authProvider.currentUser!.profileImage != null
+                        ? FileImage(
+                          File(authProvider.currentUser!.profileImage!),
+                        )
+                        : null,
+                child:
+                    authProvider.currentUser!.profileImage == null
+                        ? Text(
+                          authProvider.currentUser!.name
+                                  ?.substring(0, 1)
+                                  .toUpperCase() ??
+                              authProvider.currentUser!.email
+                                  .substring(0, 1)
+                                  .toUpperCase(),
+                          style: Theme.of(context).textTheme.displayMedium
+                              ?.copyWith(color: AppTheme.primaryColor),
+                        )
+                        : null,
               ),
               const SizedBox(height: 16),
               Text(
@@ -42,25 +58,55 @@ class ProfileScreen extends StatelessWidget {
               ),
               Text(
                 authProvider.currentUser!.email,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.subtitleColor,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.subtitleColor),
               ),
+              if (authProvider.currentUser!.isAdmin)
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Admin',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 32),
               _buildProfileItem(
                 context,
                 icon: Icons.person_outline,
                 title: 'Edit Profile',
                 onTap: () {
-                  // Implement edit profile functionality
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Edit profile functionality coming soon!'),
-                      backgroundColor: AppTheme.primaryColor,
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const EditProfileScreen(),
                     ),
                   );
                 },
               ),
+              if (authProvider.currentUser!.isAdmin)
+                _buildProfileItem(
+                  context,
+                  icon: Icons.admin_panel_settings_outlined,
+                  title: 'Admin Dashboard',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const AdminDashboardScreen(),
+                      ),
+                    );
+                  },
+                ),
               _buildProfileItem(
                 context,
                 icon: Icons.shopping_bag_outlined,
@@ -83,7 +129,9 @@ class ProfileScreen extends StatelessWidget {
                   // Implement delivery address functionality
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Delivery address functionality coming soon!'),
+                      content: Text(
+                        'Delivery address functionality coming soon!',
+                      ),
                       backgroundColor: AppTheme.primaryColor,
                     ),
                   );
@@ -97,7 +145,9 @@ class ProfileScreen extends StatelessWidget {
                   // Implement payment methods functionality
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Payment methods functionality coming soon!'),
+                      content: Text(
+                        'Payment methods functionality coming soon!',
+                      ),
                       backgroundColor: AppTheme.primaryColor,
                     ),
                   );
@@ -108,11 +158,9 @@ class ProfileScreen extends StatelessWidget {
                 icon: Icons.settings_outlined,
                 title: 'Settings',
                 onTap: () {
-                  // Implement settings functionality
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Settings functionality coming soon!'),
-                      backgroundColor: AppTheme.primaryColor,
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
                     ),
                   );
                 },
@@ -125,7 +173,9 @@ class ProfileScreen extends StatelessWidget {
                   // Implement help & support functionality
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Help & support functionality coming soon!'),
+                      content: Text(
+                        'Help & support functionality coming soon!',
+                      ),
                       backgroundColor: AppTheme.primaryColor,
                     ),
                   );
@@ -142,9 +192,19 @@ class ProfileScreen extends StatelessWidget {
                   if (context.mounted) {
                     Navigator.of(context).pushReplacement(
                       PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) => const LoginScreen(),
-                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                          return FadeTransition(opacity: animation, child: child);
+                        pageBuilder:
+                            (context, animation, secondaryAnimation) =>
+                                const LoginScreen(),
+                        transitionsBuilder: (
+                          context,
+                          animation,
+                          secondaryAnimation,
+                          child,
+                        ) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
                         },
                         transitionDuration: const Duration(milliseconds: 800),
                       ),
@@ -185,15 +245,9 @@ class ProfileScreen extends StatelessWidget {
             color: AppTheme.primaryColor.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            icon,
-            color: AppTheme.primaryColor,
-          ),
+          child: Icon(icon, color: AppTheme.primaryColor),
         ),
-        title: Text(
-          title,
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
+        title: Text(title, style: Theme.of(context).textTheme.bodyLarge),
         trailing: const Icon(
           Icons.arrow_forward_ios,
           size: 16,

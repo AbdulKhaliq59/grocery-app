@@ -22,6 +22,14 @@ class DatabaseHelper {
     return _database!;
   }
 
+  // Add this method to your DatabaseHelper class
+  Future<void> deleteDatabase() async {
+    String path = join(await getDatabasesPath(), AppConstants.dbName);
+    await databaseFactory.deleteDatabase(path);
+    print('Database deleted');
+    _database = null; // Reset the database reference
+  }
+
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), AppConstants.dbName);
     return await openDatabase(
@@ -31,6 +39,7 @@ class DatabaseHelper {
     );
   }
 
+  // Update the _onCreate method to include the role field in the users table
   Future<void> _onCreate(Database db, int version) async {
     // Create users table
     await db.execute('''
@@ -39,7 +48,8 @@ class DatabaseHelper {
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         name TEXT,
-        profile_image TEXT
+        profile_image TEXT,
+        role TEXT DEFAULT 'user'
       )
     ''');
 
@@ -83,6 +93,21 @@ class DatabaseHelper {
 
     // Insert sample products
     await _insertSampleProducts(db);
+
+    // Insert admin user
+    await _insertAdminUser(db);
+  }
+
+  // Add a method to insert an admin user
+  Future<void> _insertAdminUser(Database db) async {
+    String hashedPassword = _hashPassword('admin123');
+
+    await db.insert(AppConstants.userTable, {
+      'email': 'admin@grocery.com',
+      'password': hashedPassword,
+      'name': 'Admin',
+      'role': 'admin',
+    });
   }
 
   Future<void> _insertSampleProducts(Database db) async {
@@ -92,7 +117,8 @@ class DatabaseHelper {
         'price': 2.99,
         'image_path': 'assets/images/apple.png',
         'category': 'Fruits',
-        'description': 'Fresh and juicy apples from local farms. Rich in vitamins and fiber.',
+        'description':
+            'Fresh and juicy apples from local farms. Rich in vitamins and fiber.',
         'rating': 4.5,
       },
       {
@@ -100,7 +126,8 @@ class DatabaseHelper {
         'price': 1.99,
         'image_path': 'assets/images/banana.png',
         'category': 'Fruits',
-        'description': 'Organic bananas grown without pesticides. Perfect for smoothies and snacks.',
+        'description':
+            'Organic bananas grown without pesticides. Perfect for smoothies and snacks.',
         'rating': 4.3,
       },
       {
@@ -108,7 +135,8 @@ class DatabaseHelper {
         'price': 3.49,
         'image_path': 'assets/images/broccoli.png',
         'category': 'Vegetables',
-        'description': 'Fresh broccoli florets. High in nutrients and antioxidants.',
+        'description':
+            'Fresh broccoli florets. High in nutrients and antioxidants.',
         'rating': 4.1,
       },
       {
@@ -116,7 +144,8 @@ class DatabaseHelper {
         'price': 2.49,
         'image_path': 'assets/images/carrot.png',
         'category': 'Vegetables',
-        'description': 'Organic carrots, perfect for salads, cooking, or juicing.',
+        'description':
+            'Organic carrots, perfect for salads, cooking, or juicing.',
         'rating': 4.4,
       },
       {
@@ -132,7 +161,8 @@ class DatabaseHelper {
         'price': 5.99,
         'image_path': 'assets/images/cheese.png',
         'category': 'Dairy',
-        'description': 'Aged cheddar cheese with rich flavor. Perfect for sandwiches and cooking.',
+        'description':
+            'Aged cheddar cheese with rich flavor. Perfect for sandwiches and cooking.',
         'rating': 4.6,
       },
       {
@@ -140,7 +170,8 @@ class DatabaseHelper {
         'price': 3.29,
         'image_path': 'assets/images/bread.png',
         'category': 'Bakery',
-        'description': 'Freshly baked whole wheat bread. High in fiber and nutrients.',
+        'description':
+            'Freshly baked whole wheat bread. High in fiber and nutrients.',
         'rating': 4.2,
       },
       {
@@ -148,7 +179,8 @@ class DatabaseHelper {
         'price': 7.99,
         'image_path': 'assets/images/chicken.png',
         'category': 'Meat',
-        'description': 'Fresh boneless chicken breast. High in protein and low in fat.',
+        'description':
+            'Fresh boneless chicken breast. High in protein and low in fat.',
         'rating': 4.5,
       },
     ];
@@ -179,13 +211,13 @@ class DatabaseHelper {
   Future<User?> getUser(String email, String password) async {
     final db = await database;
     String hashedPassword = _hashPassword(password);
-    
+
     List<Map<String, dynamic>> maps = await db.query(
       AppConstants.userTable,
       where: 'email = ? AND password = ?',
       whereArgs: [email, hashedPassword],
     );
-    
+
     if (maps.isNotEmpty) {
       return User.fromMap(maps.first);
     }
@@ -194,13 +226,13 @@ class DatabaseHelper {
 
   Future<User?> getUserById(int id) async {
     final db = await database;
-    
+
     List<Map<String, dynamic>> maps = await db.query(
       AppConstants.userTable,
       where: 'id = ?',
       whereArgs: [id],
     );
-    
+
     if (maps.isNotEmpty) {
       return User.fromMap(maps.first);
     }
@@ -210,7 +242,9 @@ class DatabaseHelper {
   // Product methods
   Future<List<Product>> getProducts() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(AppConstants.productTable);
+    final List<Map<String, dynamic>> maps = await db.query(
+      AppConstants.productTable,
+    );
     return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
   }
 
@@ -226,13 +260,13 @@ class DatabaseHelper {
 
   Future<Product?> getProductById(int id) async {
     final db = await database;
-    
+
     List<Map<String, dynamic>> maps = await db.query(
       AppConstants.productTable,
       where: 'id = ?',
       whereArgs: [id],
     );
-    
+
     if (maps.isNotEmpty) {
       return Product.fromMap(maps.first);
     }
@@ -242,7 +276,7 @@ class DatabaseHelper {
   Future<List<String>> getCategories() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.rawQuery(
-      'SELECT DISTINCT category FROM ${AppConstants.productTable}'
+      'SELECT DISTINCT category FROM ${AppConstants.productTable}',
     );
     return List.generate(maps.length, (i) => maps[i]['category'] as String);
   }
@@ -250,19 +284,19 @@ class DatabaseHelper {
   // Cart methods
   Future<int> addToCart(CartItem cartItem) async {
     final db = await database;
-    
+
     // Check if the item already exists in the cart
     List<Map<String, dynamic>> existingItems = await db.query(
       AppConstants.cartTable,
       where: 'user_id = ? AND product_id = ?',
       whereArgs: [cartItem.userId, cartItem.productId],
     );
-    
+
     if (existingItems.isNotEmpty) {
       // Update quantity if item exists
       int existingId = existingItems.first['id'];
       int existingQuantity = existingItems.first['quantity'];
-      
+
       return await db.update(
         AppConstants.cartTable,
         {'quantity': existingQuantity + cartItem.quantity},
@@ -310,32 +344,32 @@ class DatabaseHelper {
       where: 'user_id = ?',
       whereArgs: [userId],
     );
-    
+
     List<CartItem> cartItems = [];
-    
+
     for (var map in maps) {
       int productId = map['product_id'];
       Product? product = await getProductById(productId);
-      
+
       if (product != null) {
         cartItems.add(CartItem.fromMap(map, product: product));
       }
     }
-    
+
     return cartItems;
   }
 
   // Shopping list methods
   Future<int> addToShoppingList(ShoppingListItem item) async {
     final db = await database;
-    
+
     // Check if the item already exists in the shopping list
     List<Map<String, dynamic>> existingItems = await db.query(
       AppConstants.shoppingListTable,
       where: 'user_id = ? AND product_id = ?',
       whereArgs: [item.userId, item.productId],
     );
-    
+
     if (existingItems.isNotEmpty) {
       // Item already exists, return its ID
       return existingItems.first['id'];
@@ -371,18 +405,83 @@ class DatabaseHelper {
       where: 'user_id = ?',
       whereArgs: [userId],
     );
-    
+
     List<ShoppingListItem> shoppingList = [];
-    
+
     for (var map in maps) {
       int productId = map['product_id'];
       Product? product = await getProductById(productId);
-      
+
       if (product != null) {
         shoppingList.add(ShoppingListItem.fromMap(map, product: product));
       }
     }
-    
+
     return shoppingList;
+  }
+
+  // Add methods for product management
+  Future<int> insertProduct(Product product) async {
+    final db = await database;
+    return await db.insert(AppConstants.productTable, product.toMap());
+  }
+
+  Future<int> updateProduct(Product product) async {
+    final db = await database;
+    return await db.update(
+      AppConstants.productTable,
+      product.toMap(),
+      where: 'id = ?',
+      whereArgs: [product.id],
+    );
+  }
+
+  Future<int> deleteProduct(int id) async {
+    final db = await database;
+    return await db.delete(
+      AppConstants.productTable,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // Add methods for user management
+  Future<List<User>> getAllUsers() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      AppConstants.userTable,
+    );
+    return List.generate(maps.length, (i) => User.fromMap(maps[i]));
+  }
+
+  Future<int> updateUserRole(int userId, String role) async {
+    final db = await database;
+    return await db.update(
+      AppConstants.userTable,
+      {'role': role},
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
+  }
+
+  Future<int> updateUserProfile(User user) async {
+    final db = await database;
+    return await db.update(
+      AppConstants.userTable,
+      {'name': user.name, 'profile_image': user.profileImage},
+      where: 'id = ?',
+      whereArgs: [user.id],
+    );
+  }
+
+  Future<int> updateUserPassword(int userId, String newPassword) async {
+    final db = await database;
+    String hashedPassword = _hashPassword(newPassword);
+    return await db.update(
+      AppConstants.userTable,
+      {'password': hashedPassword},
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
   }
 }

@@ -4,7 +4,7 @@ import 'package:grocery_app/models/product_model.dart';
 
 class ProductProvider extends ChangeNotifier {
   final DatabaseHelper _dbHelper = DatabaseHelper();
-  
+
   List<Product> _products = [];
   List<String> _categories = [];
   bool _isLoading = false;
@@ -17,7 +17,7 @@ class ProductProvider extends ChangeNotifier {
 
   ProductProvider() {
     _loadCategories();
-    _loadProducts();
+    loadProducts();
   }
 
   Future<void> _loadCategories() async {
@@ -35,7 +35,7 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _loadProducts() async {
+  Future<void> loadProducts() async {
     _isLoading = true;
     notifyListeners();
 
@@ -56,7 +56,7 @@ class ProductProvider extends ChangeNotifier {
   void setCategory(String category) {
     if (_selectedCategory != category) {
       _selectedCategory = category;
-      _loadProducts();
+      loadProducts();
     }
   }
 
